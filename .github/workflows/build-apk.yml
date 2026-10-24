@@ -1,6 +1,6 @@
 # Builds a TEST APK in the cloud (no Flutter needed on your PC).
-# Push this project to GitHub, open the "Actions" tab, choose "Build test APK",
-# press "Run workflow", then download "chai-tapri-test-apk" from the finished run.
+# Push this project to GitHub (branch main) or press "Run workflow" in the Actions tab.
+# When it finishes, open the repository's "Releases" page: the newest "Test APK" has app-release APK attached.
 # The APK uses Google's TEST ads only and is signed with the debug key: for testing, not for Play.
 name: Build test APK
 
@@ -9,8 +9,52 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: write
+
 jobs:
+  checks:
+    name: Analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Neither step stops the APK build. Their result is also written as annotations
+      # (run summary page) so it can be read without opening the full log.
+      - name: Analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-pub > analyze.txt 2>&1
+          code=$?
+          cat analyze.txt
+          msg=$(head -c 3500 analyze.txt)
+          msg="${msg//'%'/'%25'}"; msg="${msg//$'\r'/'%0D'}"; msg="${msg//$'\n'/'%0A'}"
+          echo "::notice title=analyze exit ${code}::${msg}"
+          exit 0
+
+      - name: Tests
+        shell: bash
+        run: |
+          set +e
+          flutter test --no-pub --reporter failures-only > test.txt 2>&1
+          code=$?
+          cat test.txt
+          msg=$(head -c 3500 test.txt)
+          msg="${msg//'%'/'%25'}"; msg="${msg//$'\r'/'%0D'}"; msg="${msg//$'\n'/'%0A'}"
+          echo "::notice title=tests exit ${code}::${msg}"
+          exit 0
+
   apk:
+    name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -26,27 +70,26 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Flutter version
-        run: flutter --version
-
-      - name: Get packages
-        run: flutter pub get
-
-      # These two never stop the build; read their output if something looks wrong.
-      - name: Analyze
-        run: flutter analyze
-        continue-on-error: true
-
-      - name: Tests
-        run: flutter test
-        continue-on-error: true
+      - run: flutter --version
+      - run: flutter pub get
 
       - name: Build release APK (Google test ads)
         run: flutter build apk --release --dart-define-from-file=env/test.json
 
-      - name: Upload APK
+      - name: Upload APK (workflow artifact)
         uses: actions/upload-artifact@v4
         with:
           name: chai-tapri-test-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      - name: Publish APK on the Releases page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "chai-tapri-test-${{ github.run_number }}.apk"
+          gh release create "test-${{ github.run_number }}" "chai-tapri-test-${{ github.run_number }}.apk" \
+            --repo "${{ github.repository }}" \
+            --title "Test APK #${{ github.run_number }}" \
+            --notes "Debug-signed test build with Google test ads. Install on a phone for testing only." \
+            --prerelease
