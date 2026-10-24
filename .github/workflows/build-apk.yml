@@ -51,6 +51,9 @@ jobs:
           msg=$(head -c 3500 test.txt)
           msg="${msg//'%'/'%25'}"; msg="${msg//$'\r'/'%0D'}"; msg="${msg//$'\n'/'%0A'}"
           echo "::notice title=tests exit ${code}::${msg}"
+          sum=$( { grep -E "\[E\]|Some tests failed|All tests passed" test.txt | head -c 1500; echo; tail -n 8 test.txt | head -c 1500; } )
+          sum="${sum//'%'/'%25'}"; sum="${sum//$'\r'/'%0D'}"; sum="${sum//$'\n'/'%0A'}"
+          echo "::notice title=tests summary::${sum}"
           exit 0
 
   apk:
