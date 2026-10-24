@@ -1,0 +1,52 @@
+# Builds a TEST APK in the cloud (no Flutter needed on your PC).
+# Push this project to GitHub, open the "Actions" tab, choose "Build test APK",
+# press "Run workflow", then download "chai-tapri-test-apk" from the finished run.
+# The APK uses Google's TEST ads only and is signed with the debug key: for testing, not for Play.
+name: Build test APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get packages
+        run: flutter pub get
+
+      # These two never stop the build; read their output if something looks wrong.
+      - name: Analyze
+        run: flutter analyze
+        continue-on-error: true
+
+      - name: Tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build release APK (Google test ads)
+        run: flutter build apk --release --dart-define-from-file=env/test.json
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chai-tapri-test-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

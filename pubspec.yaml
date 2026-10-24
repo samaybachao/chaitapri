@@ -1,0 +1,32 @@
+name: chai_tapri
+description: "Chai Tapri Tycoon - an idle tycoon game. Start with one small chai stall and grow it into a chain."
+publish_to: "none"
+
+# Keep the version in sync with `kAppVersion` in lib/app/constants.dart
+# (test/app_meta_test.dart fails if they differ).
+# Format: <versionName>+<versionCode>. Increase the code for EVERY Play upload.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Local save (no login). Async API = no stale cache between isolates.
+  shared_preferences: ^2.5.0
+  # Privacy policy, "Rate us" and e-mail links.
+  url_launcher: ^6.3.0
+  # Rewarded ads + Google UMP consent form.
+  google_mobile_ads: ^9.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/config/game_config.json
+    - assets/images/

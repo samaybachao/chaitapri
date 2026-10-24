@@ -1,0 +1,51 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+build/
+.packages
+.pub-cache/
+.pub/
+coverage/
+
+# Symbolication / obfuscation artefacts (keep a private copy for crash de-obfuscation)
+app.*.symbols
+app.*.map.json
+debug-info/
+
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+/android/key.properties
+*.jks
+*.keystore
+
+# Secrets: only the test and example env files are committed
+/env/*.json
+!/env/test.json
+!/env/prod.example.json

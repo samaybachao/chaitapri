@@ -1,0 +1,10 @@
+# Copy this file to android/key.properties and fill in YOUR values.
+# android/key.properties and the .jks file are git-ignored. NEVER commit them,
+# and keep a backup of the .jks file and the passwords somewhere safe:
+# if you lose them you can only update the app through Google Play key reset.
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+# Path relative to the android/app folder, or an absolute path.
+# Windows example (use forward slashes): C:/Users/YOU/keys/chai-upload.jks
+storeFile=C:/Users/YOU/keys/chai-upload.jks
