@@ -67,12 +67,22 @@ jobs:
 
       - name: Publish logs and screenshots on the Releases page
         if: always()
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd emulator-out || exit 0
-          gh release create "emulator-${{ github.run_number }}" ./* \
+          set +e
+          gh release create "emulator-${{ github.run_id }}" ./* \
             --repo "${{ github.repository }}" \
-            --title "Emulator run #${{ github.run_number }}" \
+            --title "Emulator run ${{ github.run_number }}" \
             --notes "Logcat and screenshots from the emulator smoke test." \
-            --prerelease
+            --prerelease > ../publish.log 2>&1
+          code=$?
+          cat ../publish.log
+          if [ $code -ne 0 ]; then
+            msg=$(head -c 1500 ../publish.log)
+            msg="${msg//'%'/'%25'}"; msg="${msg//$'\r'/'%0D'}"; msg="${msg//$'\n'/'%0A'}"
+            echo "::warning title=publish failed (${code})::${msg}"
+          fi
+          exit 0
