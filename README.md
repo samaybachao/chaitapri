@@ -246,6 +246,7 @@ missing in one language, a placeholder differs, or a text is not used.
 | No ads show | New AdMob units need up to a day; check internet; check the consent answer (Settings -> Ad privacy choices). The game stays playable without ads. |
 | Ads do not show on the emulator | Use an emulator image with Google Play services, or a real phone. |
 | `The Gradle wrapper was not found` | Run `flutter build apk` once; Flutter creates it. |
+| App stops right after start on a phone | Run the **Emulator smoke test** workflow (Actions tab). It installs the release APK on an Android emulator, plays a short session and publishes screenshots + logcat on the Releases page (`emulator-...`). A past crash (WorkManager/Room removed by R8) is fixed by `android/app/proguard-rules.pro`; keep that file. |
 
 ### Android project fallback
 
