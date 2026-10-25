@@ -73,6 +73,8 @@ jobs:
         run: |
           cd emulator-out || exit 0
           set +e
+          # GitHub refuses empty files (an empty crash log is the GOOD case): mark them.
+          for f in ./*; do [ -s "$f" ] || echo "(empty)" > "$f"; done
           gh release create "emulator-${{ github.run_id }}" ./* \
             --repo "${{ github.repository }}" \
             --title "Emulator run ${{ github.run_number }}" \
