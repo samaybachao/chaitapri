@@ -1,0 +1,78 @@
+# Starts the release APK on a real Android emulator and saves screenshots + logcat.
+# Use it when the app does not start on a phone: run it from the Actions tab, then open the
+# "emulator-N" prerelease on the Releases page (logcat_key.txt, logcat_crash.txt, screenshots).
+name: Emulator smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  emulator:
+    name: Run on Android emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Two builds: without code shrinking (R8) and the normal release one. Comparing them
+      # tells a shrinker problem from a code problem.
+      - name: Build release APKs (Google test ads)
+        run: |
+          flutter build apk --release --no-shrink --dart-define-from-file=env/test.json
+          cp build/app/outputs/flutter-apk/app-release.apk noshrink.apk
+          flutter build apk --release --dart-define-from-file=env/test.json
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start emulator and run the game
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            bash .github/scripts/emulator_check.sh build/app/outputs/flutter-apk/app-release.apk shrunk
+            bash .github/scripts/emulator_check.sh noshrink.apk noshrink
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          cd emulator-out 2>/dev/null || exit 0
+          sum=$( { cat shrunk_install.txt shrunk_pids.txt 2>/dev/null; echo "--- crash buffer (shrunk) ---"; head -c 1500 shrunk_logcat_crash.txt; echo; cat noshrink_pids.txt 2>/dev/null; } )
+          sum="${sum//'%'/'%25'}"; sum="${sum//$'\r'/'%0D'}"; sum="${sum//$'\n'/'%0A'}"
+          echo "::notice title=emulator summary::${sum}"
+
+      - name: Publish logs and screenshots on the Releases page
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd emulator-out || exit 0
+          gh release create "emulator-${{ github.run_number }}" ./* \
+            --repo "${{ github.repository }}" \
+            --title "Emulator run #${{ github.run_number }}" \
+            --notes "Logcat and screenshots from the emulator smoke test." \
+            --prerelease
