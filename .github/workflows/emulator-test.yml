@@ -29,13 +29,8 @@ jobs:
 
       - run: flutter pub get
 
-      # Two builds: without code shrinking (R8) and the normal release one. Comparing them
-      # tells a shrinker problem from a code problem.
-      - name: Build release APKs (Google test ads)
-        run: |
-          flutter build apk --release --no-shrink --dart-define-from-file=env/test.json
-          cp build/app/outputs/flutter-apk/app-release.apk noshrink.apk
-          flutter build apk --release --dart-define-from-file=env/test.json
+      - name: Build release APK (Google test ads)
+        run: flutter build apk --release --dart-define-from-file=env/test.json
 
       - name: Enable KVM
         run: |
@@ -52,16 +47,14 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            bash .github/scripts/emulator_check.sh build/app/outputs/flutter-apk/app-release.apk shrunk
-            bash .github/scripts/emulator_check.sh noshrink.apk noshrink
+          script: bash .github/scripts/emulator_check.sh build/app/outputs/flutter-apk/app-release.apk run
 
       - name: Summary
         if: always()
         shell: bash
         run: |
           cd emulator-out 2>/dev/null || exit 0
-          sum=$( { cat shrunk_install.txt shrunk_pids.txt 2>/dev/null; echo "--- crash buffer (shrunk) ---"; head -c 1500 shrunk_logcat_crash.txt; echo; cat noshrink_pids.txt 2>/dev/null; } )
+          sum=$( { cat run_install.txt run_pids.txt run_steps.txt 2>/dev/null; echo "--- crash buffer ---"; head -c 1500 run_logcat_crash.txt; } )
           sum="${sum//'%'/'%25'}"; sum="${sum//$'\r'/'%0D'}"; sum="${sum//$'\n'/'%0A'}"
           echo "::notice title=emulator summary::${sum}"
 
